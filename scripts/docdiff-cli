@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Сравнение из командной строки (портативный пакет):
+#   ./docdiff-cli old.docx new.docx --html report.html
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export PYTHONPATH="$DIR/lib:$DIR" PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1
+exec "$DIR/python/bin/python3" -m app.cli "$@"

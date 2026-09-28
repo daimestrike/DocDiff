@@ -1,0 +1,90 @@
+# Тег v* → готовые офлайн-архивы в GitHub Releases:
+#   docdiff-X.Y.Z-linux-x86_64.tar.gz   портативный (Python внутри), x86_64
+#   docdiff-X.Y.Z-linux-aarch64.tar.gz  портативный, ARM
+#   docdiff-X.Y.Z-docker-amd64.tar.gz   Docker-образ + compose
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+
+  portable:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - { arch: x86_64,  runner: ubuntu-latest }
+          - { arch: aarch64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Build
+        run: ARCH=${{ matrix.arch }} PYTHON=python scripts/build_bundle.sh portable
+      - name: Smoke test (распаковать и запустить без сети)
+        run: |
+          mkdir /tmp/t && tar xzf dist/*.tar.gz -C /tmp/t && cd /tmp/t/docdiff
+          NO_SYSTEMD=1 ./install.sh
+          ./start.sh & sleep 4
+          curl -fsS localhost:8080/health
+          curl -fsS -F file_a=@install.sh -F file_b=@start.sh localhost:8080/api/compare > /dev/null
+          ./docdiff-cli install.sh start.sh -q || [ $? -eq 1 ]
+      - uses: actions/upload-artifact@v4
+        with: { name: "portable-${{ matrix.arch }}", path: "dist/*.tar.gz" }
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: scripts/build_bundle.sh docker
+      - name: Smoke test
+        run: |
+          docker run -d --name t -p 8080:8080 docdiff:latest
+          for i in $(seq 1 20); do curl -fsS localhost:8080/health && break; sleep 1; done
+          curl -fsS localhost:8080/health
+      - uses: actions/upload-artifact@v4
+        with: { name: docker, path: "dist/*.tar.gz" }
+
+  release:
+    needs: [portable, docker]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - run: cd dist && sha256sum *.tar.gz > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body: |
+            ## Какой архив скачать
+
+            | Сервер | Архив |
+            |---|---|
+            | Linux x86_64, **без Docker** (самый простой вариант) | `docdiff-*-linux-x86_64.tar.gz` |
+            | Linux ARM (aarch64), без Docker | `docdiff-*-linux-aarch64.tar.gz` |
+            | Есть Docker | `docdiff-*-docker-amd64.tar.gz` |
+
+            Python и все зависимости уже внутри — на сервере ничего не скачивается.
+
+            ```bash
+            tar xzf docdiff-*.tar.gz && cd docdiff && sudo ./install.sh
+            ```
+
+            Без root: `./start.sh` → http://<сервер>:8080

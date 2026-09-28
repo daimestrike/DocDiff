@@ -1,0 +1,19 @@
+services:
+  docdiff:
+    image: docdiff:${DOCDIFF_TAG:-latest}
+    container_name: docdiff
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      PORT: 8080
+      WORKERS: ${WORKERS:-2}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      SOFFICE_TIMEOUT: ${SOFFICE_TIMEOUT:-60}
+    # Файлы не сохраняются на диск — всё обрабатывается в памяти
+    read_only: true
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

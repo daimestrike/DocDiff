@@ -1,0 +1,21 @@
+# Шаблон systemd-юнита. install.sh подставляет @APP_DIR@/@EXEC@ и ставит его автоматически.
+[Unit]
+Description=DocDiff — сравнение документов
+After=network.target
+
+[Service]
+Type=simple
+User=docdiff
+Group=docdiff
+WorkingDirectory=@APP_DIR@
+EnvironmentFile=-@APP_DIR@/.env
+ExecStart=@EXEC@
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target
