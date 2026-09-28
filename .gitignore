@@ -6,3 +6,4 @@ dist/
 .env
 .claude/
 examples/report.html
+.DS_Store
