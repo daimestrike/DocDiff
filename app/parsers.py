@@ -42,8 +42,9 @@ class TableDoc:
         return TextDoc(lines)
 
 
-TEXT_EXT = {".txt", ".md", ".json", ".xml", ".yaml", ".yml", ".html", ".htm",
-            ".ini", ".cfg", ".conf", ".log", ".sql", ".py", ".js", ".ts", ".java", ".go"}
+TEXT_EXT = {".txt", ".md", ".json", ".xml", ".yaml", ".yml", ".html", ".htm", ".toml",
+            ".ini", ".cfg", ".conf", ".env", ".properties", ".log", ".sql", ".sh", ".bat", ".ps1",
+            ".py", ".js", ".ts", ".java", ".go", ".cs", ".kt", ".php", ".rb"}
 # Форматы, которые можно открыть только через LibreOffice (если он есть на сервере)
 SOFFICE_EXT = {".doc": "docx", ".rtf": "docx", ".odt": "docx",
                ".ods": "xlsx", ".ppt": "pptx", ".odp": "pptx"}

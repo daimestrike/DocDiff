@@ -15,8 +15,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
@@ -24,25 +24,29 @@ jobs:
   portable:
     needs: test
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { arch: x86_64,  runner: ubuntu-latest }
           - { arch: aarch64, runner: ubuntu-24.04-arm }
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with: { python-version: "3.11" }
       - name: Build
         run: ARCH=${{ matrix.arch }} PYTHON=python scripts/build_bundle.sh portable
-      - name: Smoke test (распаковать и запустить без сети)
+      - name: Smoke test (распаковать и запустить)
         run: |
           mkdir /tmp/t && tar xzf dist/*.tar.gz -C /tmp/t && cd /tmp/t/docdiff
           NO_SYSTEMD=1 ./install.sh
-          ./start.sh & sleep 4
-          curl -fsS localhost:8080/health
-          curl -fsS -F file_a=@install.sh -F file_b=@start.sh localhost:8080/api/compare > /dev/null
-          ./docdiff-cli install.sh start.sh -q || [ $? -eq 1 ]
+          sed -i 's/^PORT=.*/PORT=18080/' .env
+          ./start.sh > /tmp/server.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS localhost:18080/health && break; sleep 1; done
+          curl -fsS localhost:18080/health || { echo "::error::$(tail -c 600 /tmp/server.log | tr '\n' ' ')"; exit 1; }
+          code=$(curl -s -o /tmp/r.json -w '%{http_code}' -F file_a=@install.sh -F file_b=@start.sh localhost:18080/api/compare)
+          [ "$code" = 200 ] || { echo "::error::compare HTTP $code: $(head -c 300 /tmp/r.json)"; exit 1; }
+          ./docdiff-cli README.md README.md -q
       - uses: actions/upload-artifact@v4
         with: { name: "portable-${{ matrix.arch }}", path: "dist/*.tar.gz" }
 
@@ -50,14 +54,15 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build
         run: scripts/build_bundle.sh docker
       - name: Smoke test
         run: |
-          docker run -d --name t -p 8080:8080 docdiff:latest
-          for i in $(seq 1 20); do curl -fsS localhost:8080/health && break; sleep 1; done
-          curl -fsS localhost:8080/health
+          docker images
+          docker run -d --name t -p 18080:8080 docdiff:latest 2>/tmp/err || { echo "::error::docker run: $(cat /tmp/err | tr '\n' ' ')"; exit 1; }
+          for i in $(seq 1 20); do curl -fsS localhost:18080/health && break; sleep 1; done
+          curl -fsS localhost:18080/health || { echo "::error::$(docker logs t 2>&1 | tail -c 600 | tr '\n' ' ')"; exit 1; }
       - uses: actions/upload-artifact@v4
         with: { name: docker, path: "dist/*.tar.gz" }
 
