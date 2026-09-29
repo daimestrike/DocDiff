@@ -35,6 +35,7 @@ docdiff/
 ├── lib/             библиотеки
 ├── app/             приложение
 ├── deploy/          шаблоны systemd и nginx
+├── wiki/            эта документация
 └── README.md
 ```
 
@@ -120,3 +121,7 @@ PLATFORM=linux/arm64 make bundle-docker # Docker для ARM
 ```
 
 Результат — в `dist/`.
+
+---
+
+← [Быстрый старт](02-quick-start.md) · [Оглавление](README.md) · [Руководство пользователя](04-user-guide.md) →

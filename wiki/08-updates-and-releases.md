@@ -47,3 +47,7 @@ git push && git push --tags
 ## Версии зависимостей
 
 Все библиотеки зафиксированы в `requirements.txt`, Python для портативной сборки — в `scripts/build_bundle.sh` (`PBS_TAG`, `PBS_PY`). Чтобы обновить — поменяйте версии, прогоните `make test` и выпустите новый тег.
+
+---
+
+← [CLI и API](07-cli-and-api.md) · [Оглавление](README.md) · [Решение проблем](09-troubleshooting.md) →

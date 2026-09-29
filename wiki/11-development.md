@@ -34,7 +34,7 @@ scripts/
   start.sh, docdiff-cli  запуск портативной версии (кладутся в архив)
   make_examples.py    генерация демо-файлов
 deploy/               шаблоны systemd и nginx
-docs/wiki/            эта вики
+wiki/                 документация проекта (эти страницы)
 .github/workflows/    CI и сборка релизов
 Dockerfile, docker-compose.yml
 ```
@@ -49,12 +49,15 @@ make test
 
 CI ([ci.yml](https://github.com/daimestrike/DocDiff/blob/main/.github/workflows/ci.yml)) прогоняет их на каждый push в `main` и в pull request.
 
-## Вики
+## Документация
 
-Исходники страниц — в `docs/wiki/` в репозитории. После правок опубликуйте их в GitHub Wiki:
+Документация — папка `wiki/` в корне репозитория, обычные markdown-файлы:
 
-```bash
-git clone https://github.com/daimestrike/DocDiff.wiki.git /tmp/wiki
-cp docs/wiki/*.md /tmp/wiki/
-cd /tmp/wiki && git add -A && git commit -m "Обновление вики" && git push
-```
+- номер в имени файла задаёт порядок чтения, [README.md](README.md) — оглавление;
+- ссылки между документами относительные (`[Установка](03-installation.md)`), поэтому работают и на GitHub, и в распакованном архиве;
+- внизу каждого документа — навигация «назад / оглавление / далее»; добавляя новый документ, обновите её у соседей и в оглавлении;
+- `scripts/build_bundle.sh` кладёт папку `wiki/` в каждый офлайн-архив.
+
+---
+
+← [Архитектура](10-architecture.md) · [Оглавление](README.md)
